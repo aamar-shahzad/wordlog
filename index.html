@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Smart Word Logbook</title>
+    
+    <!-- PWA Primary Meta Tags -->
+    <meta name="theme-color" content="#4f46e5">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="WordLog">
+    
+    <!-- Manifest Link -->
+    <link rel="manifest" id="manifest-placeholder">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .word-card {
+            transition: transform 0.1s ease, box-shadow 0.1s ease;
+        }
+        .word-card:active {
+            transform: scale(0.98);
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-item {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+        /* PWA specific padding for notched screens */
+        body {
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-20 px-4 py-4">
+        <div class="max-w-md mx-auto flex justify-between items-center">
+            <h1 class="text-xl font-bold text-indigo-600 flex items-center gap-2">
+                <span>Logbook</span>
+                <span id="lookup-status" class="hidden text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full uppercase tracking-widest font-bold">Searching...</span>
+            </h1>
+            <span id="word-count" class="text-xs font-medium bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full">0 Words</span>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow p-4 max-w-md mx-auto w-full pb-40">
+        <div id="empty-state" class="text-center py-20 text-slate-400">
+            <svg class="w-16 h-16 mx-auto mb-4 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+            </svg>
+            <p>Your logbook is empty.<br>Type a word below to start.</p>
+        </div>
+
+        <div id="word-list" class="space-y-3">
+            <!-- Words appear here -->
+        </div>
+    </main>
+
+    <!-- Bottom Input Area -->
+    <section class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-4 shadow-[0_-4px_10px_rgba(0,0,0,0.05)] z-10">
+        <div class="max-w-md mx-auto">
+            <div class="flex flex-col gap-2">
+                <div class="relative">
+                    <input type="text" id="word-input" placeholder="Enter word..." 
+                        class="w-full px-4 py-3 bg-slate-100 border-2 border-transparent rounded-xl focus:bg-white focus:border-indigo-500 outline-none transition-all pr-12">
+                    <div id="loader" class="hidden absolute right-4 top-1/2 -translate-y-1/2">
+                        <div class="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                </div>
+                
+                <div class="flex gap-2">
+                    <input type="text" id="meaning-input" placeholder="Meaning / Translation..." 
+                        class="flex-grow px-4 py-3 bg-slate-100 border-2 border-transparent rounded-xl focus:bg-white focus:border-indigo-500 outline-none transition-all">
+                    <button onclick="addWord()" id="add-btn" 
+                        class="bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold active:scale-95 transition-all shadow-md shadow-indigo-100">
+                        Add
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Toast -->
+    <div id="toast" class="fixed bottom-44 left-1/2 -translate-x-1/2 bg-slate-800 text-white px-4 py-2 rounded-full text-sm opacity-0 transition-opacity pointer-events-none z-50">
+        Word added!
+    </div>
+
+    <script>
+        // PWA Setup: Inline Manifest Generation
+        const myManifest = {
+            "name": "Smart Word Logbook",
+            "short_name": "WordLog",
+            "start_url": "./",
+            "display": "standalone",
+            "background_color": "#f8fafc",
+            "theme_color": "#4f46e5",
+            "icons": [
+                {
+                    "src": "https://cdn-icons-png.flaticon.com/512/3898/3898082.png",
+                    "sizes": "512x512",
+                    "type": "image/png",
+                    "purpose": "any maskable"
+                }
+            ]
+        };
+        const manifestStr = JSON.stringify(myManifest);
+        const manifestBlob = new Blob([manifestStr], {type: 'application/json'});
+        document.getElementById('manifest-placeholder').setAttribute('href', URL.createObjectURL(manifestBlob));
+
+        // PWA Service Worker Registration
+        // Note: For GitHub Pages, you should create a separate file named 'sw.js'
+        if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
+            window.addEventListener('load', () => {
+                // On GitHub Pages, we point to the physical sw.js file
+                // We use a try-catch to prevent errors in preview environments
+                navigator.serviceWorker.register('./sw.js').catch(err => {
+                    console.log('ServiceWorker not found (this is normal in preview). To enable offline mode on GitHub, create a file named sw.js');
+                });
+            });
+        }
+
+        let words = JSON.parse(localStorage.getItem('my_logbook_words')) || [];
+        let typingTimer;
+
+        // Auto-fetch meaning as you type
+        document.getElementById('word-input').addEventListener('input', (e) => {
+            clearTimeout(typingTimer);
+            const word = e.target.value.trim();
+            if (word.length > 1) {
+                typingTimer = setTimeout(() => fetchMeaning(word), 800);
+            }
+        });
+
+        async function fetchMeaning(word) {
+            const loader = document.getElementById('loader');
+            const meaningInput = document.getElementById('meaning-input');
+            const statusLabel = document.getElementById('lookup-status');
+
+            loader.classList.remove('hidden');
+            statusLabel.classList.remove('hidden');
+
+            try {
+                // Try Dictionary API first
+                const dictRes = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`);
+                
+                if (dictRes.ok) {
+                    const data = await dictRes.json();
+                    const definition = data[0].meanings[0].definitions[0].definition;
+                    meaningInput.value = definition;
+                } else {
+                    // Fallback to Google Translate public proxy
+                    const transRes = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&q=${encodeURIComponent(word)}`);
+                    const transData = await transRes.json();
+                    if (transData && transData[0] && transData[0][0]) {
+                        meaningInput.value = transData[0][0][0];
+                    }
+                }
+            } catch (err) {
+                console.error("Lookup failed:", err);
+            } finally {
+                loader.classList.add('hidden');
+                statusLabel.classList.add('hidden');
+            }
+        }
+
+        function saveToStorage() {
+            localStorage.setItem('my_logbook_words', JSON.stringify(words));
+            updateUI();
+        }
+
+        function addWord() {
+            const wordInput = document.getElementById('word-input');
+            const meaningInput = document.getElementById('meaning-input');
+            const word = wordInput.value.trim();
+            const meaning = meaningInput.value.trim();
+
+            if (!word || !meaning) {
+                showToast("Please enter a word and meaning");
+                return;
+            }
+
+            const newEntry = {
+                id: Date.now(),
+                word: word,
+                meaning: meaning,
+                date: new Date().toLocaleDateString()
+            };
+
+            words.unshift(newEntry);
+            wordInput.value = '';
+            meaningInput.value = '';
+            wordInput.focus();
+            
+            saveToStorage();
+            showToast("Added!");
+        }
+
+        function deleteWord(id) {
+            words = words.filter(w => w.id !== id);
+            saveToStorage();
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.innerText = msg;
+            toast.style.opacity = '1';
+            setTimeout(() => { toast.style.opacity = '0'; }, 2000);
+        }
+
+        function updateUI() {
+            const list = document.getElementById('word-list');
+            const emptyState = document.getElementById('empty-state');
+            const countDisplay = document.getElementById('word-count');
+
+            countDisplay.innerText = `${words.length} ${words.length === 1 ? 'Word' : 'Words'}`;
+
+            if (words.length === 0) {
+                list.innerHTML = '';
+                emptyState.style.display = 'block';
+                return;
+            }
+
+            emptyState.style.display = 'none';
+            list.innerHTML = words.map(item => `
+                <div class="word-card bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-start animate-item">
+                    <div class="flex-grow pr-4">
+                        <h3 class="font-bold text-lg text-slate-800 capitalize">${item.word}</h3>
+                        <p class="text-slate-600 mt-1 leading-relaxed text-sm">${item.meaning}</p>
+                        <span class="text-[9px] uppercase font-bold text-slate-400 mt-2 block tracking-wider">${item.date}</span>
+                    </div>
+                    <button onclick="deleteWord(${item.id})" class="text-slate-300 hover:text-red-500 p-2 transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                        </svg>
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        updateUI();
+
+        document.getElementById('meaning-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') addWord();
+        });
+    </script>
+</body>
+</html>
