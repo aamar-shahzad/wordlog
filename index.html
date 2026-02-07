@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Smart Word Logbook</title>
+    <title>Smart Wordbook</title>
     
     <!-- PWA Primary Meta Tags -->
     <meta name="theme-color" content="#4f46e5">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="WordLog">
+    <meta name="apple-mobile-web-app-title" content="Wordbook">
     
     <!-- Manifest Link -->
     <link rel="manifest" id="manifest-placeholder">
@@ -42,7 +42,7 @@
     <header class="bg-white border-b border-slate-200 sticky top-0 z-20 px-4 py-4">
         <div class="max-w-md mx-auto flex justify-between items-center">
             <h1 class="text-xl font-bold text-indigo-600 flex items-center gap-2">
-                <span>Logbook</span>
+                <span>Wordbook</span>
                 <span id="lookup-status" class="hidden text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full uppercase tracking-widest font-bold">Searching...</span>
             </h1>
             <span id="word-count" class="text-xs font-medium bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full">0 Words</span>
@@ -55,7 +55,7 @@
             <svg class="w-16 h-16 mx-auto mb-4 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
             </svg>
-            <p>Your logbook is empty.<br>Type a word below to start.</p>
+            <p>Your wordbook is empty.<br>Type a word below to start.</p>
         </div>
 
         <div id="word-list" class="space-y-3">
@@ -95,8 +95,8 @@
     <script>
         // PWA Setup: Inline Manifest Generation
         const myManifest = {
-            "name": "Smart Word Logbook",
-            "short_name": "WordLog",
+            "name": "Smart Wordbook",
+            "short_name": "Wordbook",
             "start_url": "./",
             "display": "standalone",
             "background_color": "#f8fafc",
@@ -126,7 +126,7 @@
             });
         }
 
-        let words = JSON.parse(localStorage.getItem('my_logbook_words')) || [];
+        let words = JSON.parse(localStorage.getItem('my_wordbook_words')) || [];
         let typingTimer;
 
         // Auto-fetch meaning as you type
@@ -171,7 +171,7 @@
         }
 
         function saveToStorage() {
-            localStorage.setItem('my_logbook_words', JSON.stringify(words));
+            localStorage.setItem('my_wordbook_words', JSON.stringify(words));
             updateUI();
         }
 
