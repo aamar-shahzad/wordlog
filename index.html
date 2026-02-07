@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Smart Wordbook</title>
+    <title>Smart Word Logbook Pro</title>
     
     <!-- PWA Primary Meta Tags -->
     <meta name="theme-color" content="#4f46e5">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Wordbook">
+    <meta name="apple-mobile-web-app-title" content="WordLog">
     
     <!-- Manifest Link -->
     <link rel="manifest" id="manifest-placeholder">
@@ -34,28 +34,59 @@
             padding-top: env(safe-area-inset-top);
             padding-bottom: env(safe-area-inset-bottom);
         }
+        .glass {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        /* Custom scrollbar for synonyms */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900 font-sans min-h-screen flex flex-col">
 
     <!-- Header -->
-    <header class="bg-white border-b border-slate-200 sticky top-0 z-20 px-4 py-4">
-        <div class="max-w-md mx-auto flex justify-between items-center">
-            <h1 class="text-xl font-bold text-indigo-600 flex items-center gap-2">
-                <span>Wordbook</span>
-                <span id="lookup-status" class="hidden text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full uppercase tracking-widest font-bold">Searching...</span>
-            </h1>
-            <span id="word-count" class="text-xs font-medium bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full">0 Words</span>
+    <header class="bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-30 px-4 py-3">
+        <div class="max-w-md mx-auto flex flex-col gap-3">
+            <div class="flex justify-between items-center">
+                <h1 class="text-xl font-bold text-indigo-600 flex items-center gap-2">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                    <span>WordLog</span>
+                    <span id="lookup-status" class="hidden text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full uppercase tracking-widest font-bold animate-pulse">Searching...</span>
+                </h1>
+                <div class="flex items-center gap-2">
+                    <button onclick="exportData()" class="p-2 text-slate-400 hover:text-indigo-600 transition-colors" title="Export Data">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    </button>
+                    <span id="word-count" class="text-xs font-bold bg-indigo-100 text-indigo-700 px-2.5 py-1 rounded-full">0 Words</span>
+                </div>
+            </div>
+            
+            <!-- Search Bar -->
+            <div class="relative">
+                <input type="text" id="search-input" oninput="updateUI()" placeholder="Search your logbook..." 
+                    class="w-full pl-9 pr-4 py-2 bg-slate-100 border-none rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 transition-all outline-none">
+                <svg class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            </div>
         </div>
     </header>
 
     <!-- Main Content -->
-    <main class="flex-grow p-4 max-w-md mx-auto w-full pb-40">
+    <main class="flex-grow p-4 max-w-md mx-auto w-full pb-56">
         <div id="empty-state" class="text-center py-20 text-slate-400">
-            <svg class="w-16 h-16 mx-auto mb-4 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
-            </svg>
-            <p>Your wordbook is empty.<br>Type a word below to start.</p>
+            <div class="bg-slate-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg class="w-10 h-10 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                </svg>
+            </div>
+            <p class="font-medium">Your logbook is empty.</p>
+            <p class="text-sm">New words you add will appear here.</p>
         </div>
 
         <div id="word-list" class="space-y-3">
@@ -64,39 +95,60 @@
     </main>
 
     <!-- Bottom Input Area -->
-    <section class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-4 shadow-[0_-4px_10px_rgba(0,0,0,0.05)] z-10">
+    <section class="fixed bottom-0 left-0 right-0 glass border-t border-slate-200 p-4 shadow-[0_-8px_30px_rgb(0,0,0,0.04)] z-20">
         <div class="max-w-md mx-auto">
             <div class="flex flex-col gap-2">
                 <div class="relative">
-                    <input type="text" id="word-input" placeholder="Enter word..." 
-                        class="w-full px-4 py-3 bg-slate-100 border-2 border-transparent rounded-xl focus:bg-white focus:border-indigo-500 outline-none transition-all pr-12">
+                    <input type="text" id="word-input" autocomplete="off" placeholder="New word..." 
+                        class="w-full px-4 py-3 bg-white border-2 border-slate-100 rounded-xl focus:border-indigo-500 outline-none transition-all pr-12 font-medium shadow-sm">
                     <div id="loader" class="hidden absolute right-4 top-1/2 -translate-y-1/2">
                         <div class="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
                     </div>
                 </div>
                 
                 <div class="flex gap-2">
-                    <input type="text" id="meaning-input" placeholder="Meaning / Translation..." 
-                        class="flex-grow px-4 py-3 bg-slate-100 border-2 border-transparent rounded-xl focus:bg-white focus:border-indigo-500 outline-none transition-all">
+                    <input type="text" id="meaning-input" placeholder="Meaning or Translation..." 
+                        class="flex-grow px-4 py-3 bg-white border-2 border-slate-100 rounded-xl focus:border-indigo-500 outline-none transition-all shadow-sm">
                     <button onclick="addWord()" id="add-btn" 
-                        class="bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold active:scale-95 transition-all shadow-md shadow-indigo-100">
-                        Add
+                        class="bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold active:scale-95 transition-all shadow-lg shadow-indigo-200 flex items-center justify-center">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path></svg>
                     </button>
+                </div>
+                
+                <!-- Synonyms Preview -->
+                <div id="synonym-preview" class="flex gap-1 overflow-x-auto no-scrollbar py-1 min-h-[24px]">
+                    <!-- Fetched synonyms will appear here briefly -->
+                </div>
+
+                <!-- Quick Settings -->
+                <div class="flex justify-between items-center mt-1 px-1">
+                    <label class="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1">
+                        Translate to: 
+                        <select id="target-lang" class="bg-transparent text-indigo-600 outline-none">
+                            <option value="en">English</option>
+                            <option value="es">Spanish</option>
+                            <option value="fr">French</option>
+                            <option value="de">German</option>
+                            <option value="zh">Chinese</option>
+                            <option value="ar">Arabic</option>
+                            <option value="tr">Turkish</option>
+                        </select>
+                    </label>
                 </div>
             </div>
         </div>
     </section>
 
     <!-- Toast -->
-    <div id="toast" class="fixed bottom-44 left-1/2 -translate-x-1/2 bg-slate-800 text-white px-4 py-2 rounded-full text-sm opacity-0 transition-opacity pointer-events-none z-50">
+    <div id="toast" class="fixed bottom-56 left-1/2 -translate-x-1/2 bg-slate-900/90 text-white px-5 py-2.5 rounded-full text-sm font-medium opacity-0 transition-all pointer-events-none z-50 scale-90">
         Word added!
     </div>
 
     <script>
         // PWA Setup: Inline Manifest Generation
         const myManifest = {
-            "name": "Smart Wordbook",
-            "short_name": "Wordbook",
+            "name": "Smart Word Logbook Pro",
+            "short_name": "WordLog",
             "start_url": "./",
             "display": "standalone",
             "background_color": "#f8fafc",
@@ -115,19 +167,17 @@
         document.getElementById('manifest-placeholder').setAttribute('href', URL.createObjectURL(manifestBlob));
 
         // PWA Service Worker Registration
-        // Note: For GitHub Pages, you should create a separate file named 'sw.js'
         if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
             window.addEventListener('load', () => {
-                // On GitHub Pages, we point to the physical sw.js file
-                // We use a try-catch to prevent errors in preview environments
-                navigator.serviceWorker.register('./sw.js').catch(err => {
-                    console.log('ServiceWorker not found (this is normal in preview). To enable offline mode on GitHub, create a file named sw.js');
+                navigator.serviceWorker.register('./sw.js').catch(() => {
+                    console.log('Offline mode ready for production deployment.');
                 });
             });
         }
 
-        let words = JSON.parse(localStorage.getItem('my_wordbook_words')) || [];
+        let words = JSON.parse(localStorage.getItem('my_logbook_words')) || [];
         let typingTimer;
+        let currentSynonyms = [];
 
         // Auto-fetch meaning as you type
         document.getElementById('word-input').addEventListener('input', (e) => {
@@ -135,6 +185,9 @@
             const word = e.target.value.trim();
             if (word.length > 1) {
                 typingTimer = setTimeout(() => fetchMeaning(word), 800);
+            } else {
+                currentSynonyms = [];
+                renderSynonymPreview();
             }
         });
 
@@ -142,21 +195,39 @@
             const loader = document.getElementById('loader');
             const meaningInput = document.getElementById('meaning-input');
             const statusLabel = document.getElementById('lookup-status');
+            const targetLang = document.getElementById('target-lang').value;
 
             loader.classList.remove('hidden');
             statusLabel.classList.remove('hidden');
+            currentSynonyms = [];
 
             try {
-                // Try Dictionary API first
+                // Dictionary API (for English definitions AND synonyms)
                 const dictRes = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`);
                 
                 if (dictRes.ok) {
                     const data = await dictRes.json();
-                    const definition = data[0].meanings[0].definitions[0].definition;
-                    meaningInput.value = definition;
-                } else {
-                    // Fallback to Google Translate public proxy
-                    const transRes = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&q=${encodeURIComponent(word)}`);
+                    
+                    // Set meaning if English
+                    if (targetLang === 'en') {
+                        meaningInput.value = data[0].meanings[0].definitions[0].definition;
+                    }
+
+                    // Extract synonyms
+                    let synSet = new Set();
+                    data[0].meanings.forEach(m => {
+                        if (m.synonyms) m.synonyms.forEach(s => synSet.add(s));
+                        m.definitions.forEach(d => {
+                            if (d.synonyms) d.synonyms.forEach(s => synSet.add(s));
+                        });
+                    });
+                    currentSynonyms = Array.from(synSet).slice(0, 5);
+                    renderSynonymPreview();
+                }
+
+                // If not English or definition not set, use Google Translate
+                if (targetLang !== 'en' || !meaningInput.value) {
+                    const transRes = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetLang}&dt=t&q=${encodeURIComponent(word)}`);
                     const transData = await transRes.json();
                     if (transData && transData[0] && transData[0][0]) {
                         meaningInput.value = transData[0][0][0];
@@ -170,8 +241,39 @@
             }
         }
 
+        function renderSynonymPreview() {
+            const container = document.getElementById('synonym-preview');
+            if (currentSynonyms.length === 0) {
+                container.innerHTML = '';
+                return;
+            }
+            container.innerHTML = `<span class="text-[9px] font-bold text-slate-400 self-center uppercase mr-1">Synonyms:</span>` + 
+                currentSynonyms.map(s => `<span class="text-[10px] bg-indigo-50 text-indigo-500 px-2 py-0.5 rounded-full font-medium whitespace-nowrap">${s}</span>`).join('');
+        }
+
+        function speak(text) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.rate = 0.9;
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        function exportData() {
+            if (words.length === 0) return showToast("Nothing to export");
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(words, null, 2));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", "my_logbook.json");
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+            showToast("Logbook exported!");
+        }
+
         function saveToStorage() {
-            localStorage.setItem('my_wordbook_words', JSON.stringify(words));
+            localStorage.setItem('my_logbook_words', JSON.stringify(words));
             updateUI();
         }
 
@@ -182,7 +284,7 @@
             const meaning = meaningInput.value.trim();
 
             if (!word || !meaning) {
-                showToast("Please enter a word and meaning");
+                showToast("Enter a word and its meaning");
                 return;
             }
 
@@ -190,16 +292,19 @@
                 id: Date.now(),
                 word: word,
                 meaning: meaning,
-                date: new Date().toLocaleDateString()
+                synonyms: currentSynonyms,
+                date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
             };
 
             words.unshift(newEntry);
             wordInput.value = '';
             meaningInput.value = '';
+            currentSynonyms = [];
+            renderSynonymPreview();
             wordInput.focus();
             
             saveToStorage();
-            showToast("Added!");
+            showToast("Word logged!");
         }
 
         function deleteWord(id) {
@@ -210,32 +315,58 @@
         function showToast(msg) {
             const toast = document.getElementById('toast');
             toast.innerText = msg;
-            toast.style.opacity = '1';
-            setTimeout(() => { toast.style.opacity = '0'; }, 2000);
+            toast.classList.remove('opacity-0', 'scale-90');
+            toast.classList.add('opacity-100', 'scale-100');
+            setTimeout(() => { 
+                toast.classList.add('opacity-0', 'scale-90'); 
+                toast.classList.remove('opacity-100', 'scale-100');
+            }, 2000);
         }
 
         function updateUI() {
             const list = document.getElementById('word-list');
             const emptyState = document.getElementById('empty-state');
             const countDisplay = document.getElementById('word-count');
+            const searchTerm = document.getElementById('search-input').value.toLowerCase();
+
+            const filteredWords = words.filter(w => 
+                w.word.toLowerCase().includes(searchTerm) || 
+                w.meaning.toLowerCase().includes(searchTerm) ||
+                (w.synonyms && w.synonyms.some(s => s.toLowerCase().includes(searchTerm)))
+            );
 
             countDisplay.innerText = `${words.length} ${words.length === 1 ? 'Word' : 'Words'}`;
 
-            if (words.length === 0) {
+            if (filteredWords.length === 0) {
                 list.innerHTML = '';
                 emptyState.style.display = 'block';
+                if (searchTerm) emptyState.querySelector('p').innerText = "No results found for your search.";
                 return;
             }
 
             emptyState.style.display = 'none';
-            list.innerHTML = words.map(item => `
-                <div class="word-card bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-start animate-item">
+            list.innerHTML = filteredWords.map(item => `
+                <div class="word-card bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-start animate-item">
                     <div class="flex-grow pr-4">
-                        <h3 class="font-bold text-lg text-slate-800 capitalize">${item.word}</h3>
-                        <p class="text-slate-600 mt-1 leading-relaxed text-sm">${item.meaning}</p>
-                        <span class="text-[9px] uppercase font-bold text-slate-400 mt-2 block tracking-wider">${item.date}</span>
+                        <div class="flex items-center gap-2">
+                            <h3 class="font-bold text-lg text-slate-800 capitalize leading-tight">${item.word}</h3>
+                            <button onclick="speak('${item.word}')" class="text-indigo-400 hover:text-indigo-600 transition-colors p-1">
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.983 5.983 0 01-1.757 4.243 1 1 0 01-1.415-1.415A3.984 3.984 0 0013 10a3.984 3.984 0 00-1.172-2.828 1 1 0 010-1.415z" clip-rule="evenodd"></path></svg>
+                            </button>
+                        </div>
+                        <p class="text-slate-600 mt-2 leading-relaxed text-sm font-medium">${item.meaning}</p>
+                        
+                        ${item.synonyms && item.synonyms.length > 0 ? `
+                            <div class="flex flex-wrap gap-1 mt-3">
+                                ${item.synonyms.map(s => `<span class="text-[9px] bg-slate-50 text-slate-400 px-2 py-0.5 rounded-full border border-slate-100 font-bold uppercase tracking-tighter">${s}</span>`).join('')}
+                            </div>
+                        ` : ''}
+
+                        <div class="flex items-center gap-2 mt-4">
+                            <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">${item.date}</span>
+                        </div>
                     </div>
-                    <button onclick="deleteWord(${item.id})" class="text-slate-300 hover:text-red-500 p-2 transition-colors">
+                    <button onclick="deleteWord(${item.id})" class="text-slate-300 hover:text-red-500 p-2 transition-colors rounded-full hover:bg-red-50">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                         </svg>
